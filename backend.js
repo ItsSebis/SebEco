@@ -31,6 +31,13 @@ backend.get('/getcookie', (req, res) => {
 // public vars
 let users = {}
 let passwords = {}
+const skel = {
+    balance: 1000,
+    inventory: {
+        apple: 10,
+        apple_crate: 10
+    },
+}
 const socketUser = {}
 const userSocket = {}
 
@@ -60,6 +67,9 @@ io.on('connection', (socket) => {
         bcrypt.compare(credentials.password, passwords[credentials.user], function(err, result) {
             if (result) {
                 // user authenticated
+                if (userSocket[credentials.user] !== undefined) {
+                    io.to(userSocket[credentials.user]).emit('kick')
+                }
                 socket.join('authenticated')
                 socketUser[socket.id] = credentials.user
                 userSocket[credentials.user] = socket.id
@@ -76,17 +86,22 @@ io.on('connection', (socket) => {
 
     // set password
     socket.on('pw', (data) => {
-        bcrypt.compare(data.password, passwords[data.user], function(err, result) {
+        bcrypt.compare(data.old, passwords[socketUser[socket.id]], function(err, result) {
             if (result) {
                 // user authenticated
+                setPassword(socketUser[socket.id], data.new)
+                socket.emit('pwChS')
             } else {
                 // user authentication failed
+                socket.emit('pwChF', "Falsches Passwort!")
             }
         });
     })
 
     socket.on('disconnect', (reason) => {
-        delete userSocket[socketUser[socket.id]]
+        if (userSocket[socketUser[socket.id]] === socket.id) {
+            delete userSocket[socketUser[socket.id]]
+        }
         delete socketUser[socket.id]
     })
 })
@@ -98,7 +113,7 @@ function setPassword(user, password) {
         bcrypt.hash(password, salt, function(err, hash) {
             // Store hash in your password DB.
             if (err) throw err;
-            users[user].password = hash
+            passwords[user] = hash
             console.log(hash + " << " + password)
             console.log(users)
             saveData()
@@ -111,6 +126,7 @@ function saveData() {
     io.to('authenticated').emit('update', {users: users})
     const data = {
         users: users,
+        passwords: passwords,
     }
     fs.writeFile('./data.json', JSON.stringify(data), err => {
         if (err) {

@@ -9,8 +9,8 @@ html {
 
 body {
     background-color: #fdfdfd;
-    width: 90%;
     margin: 0;
+    height: 100%;
 }
 
 input {
@@ -68,30 +68,109 @@ h1 {
 }
 .login form input {
     margin: 25px;
-    font-size: 2rem;
+    font-size: 1.5rem;
     width: 80%;
     height: 100px;
 }
 .login form button {
-    font-size: 2rem;
+    font-size: 1.5rem;
 }
 
-.navi {
-    border: solid blue;
+.bar {
     position: fixed;
+    float: none;
     width: 100%;
 }
-.navi #balance {
-    border: solid aqua;
+.bar tbody tr td {
+    vertical-align: center;
+}
+.bar #menuBtnCol {
+    font-size: 4rem;
+}
+.bar #nameCol {
+    width: 40%;
+}
+.bar #balance {
+    width: 40%;
+    font-size: 1.5rem;
+}
+#displayName {
+    font-size: 3rem;
+}
+
+.menu {
+    background-color: darkgray;
+    width: 100%;
+    height: 100%;
     position: absolute;
-    float: right;
-    top: 10px;
-    right: 10px;
+    left: -100%;
+    transition: 0.2s ease-in-out;
+}
+.menu.active {
+    left: 0;
 }
 
-.main {
-    border: solid red;
+.menuContent {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+.menuContent {
+    width: 80%;
+    font-size: 1.5rem;
+}
+.menuContent tr:nth-child(odd) {
+    background-color: #454545;
+    color: #fdfdfd;
+}
+.menuContent tr td {
+    border: solid;
+    height: 75px;
+}
+.menuContent tr td:first-child {
+    width: 20%;
+    font-size: 1.8rem;
+}
+.menuContent tr td:last-child {
+    width: 80%;
+    cursor: pointer;
+}
 
+.mainWrapper {
+    display: none;
+    background-color: #bdbdbd;
+    border: solid #bdbdbd;
+    border-radius: 12px;
+    padding: 10px;
+    font-size: 1.3rem;
+    position: absolute;
+    top: 60%;
+    left: 50%;
+    transform: translate(-50%, -60%);
+    height: 75%;
+    width: 85%;
+
+    overflow-y: initial;
+}
+.mainWrapper.active {
+    display: unset;
+}
+
+#profileWrapper input {
+    width: 85%;
+    margin-top: 12px;
+}
+#profileWrapper #pwError {
+    color: red;
+}
+
+#adminWrapper table {
     margin: 0 auto;
-    width: 100%;
+    width: 70%;
+    font-size: 1.5rem;
+}
+#adminWrapper table tr:nth-child(odd) {
+    background-color: #454545;
+    color: #fdfdfd;
 }

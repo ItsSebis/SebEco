@@ -33,13 +33,57 @@
 
 <div id="postLogin" style="display: none">
 
-    <div class="navi">
-        <h1 id="displayName"></h1>
-        <span id="balance"></span>
+    <div class="mainWrapper active" id="profileWrapper">
+        <h1>Profil</h1>
+        <h2>Passwort</h2>
+        <input id="oldPw" type="password" placeholder="Altes Passwort..."><br>
+        <input id="newPw" type="password" placeholder="Neues Passwort..."><br>
+        <input id="repPw" type="password" placeholder="Passwort wiederholen..."><br><br>
+        <button id="setPw">Passwort setzen</button>
+        <p id="pwError"></p>
+    </div>
+    <div class="mainWrapper" id="invWrapper">
+        <h1>Inventar</h1>
+    </div>
+    <div class="mainWrapper" id="adminWrapper">
+        <h1>Verwaltung</h1>
+        <table id="usersTable">
+            <tbody id="usersBody">
+
+            </tbody>
+        </table>
     </div>
 
-    <div class="main">
+    <div class="menu" id="menu">
+        <table class="menuContent">
+            <tbody>
+            <tr>
+                <td><i class='bx bxs-user-circle' ></i></td>
+                <td class="tabBtn" id="profileBtn" data-value="profile">Profil</td>
+            </tr>
+            <tr>
+                <td><i class='bx bxs-category'></i></td>
+                <td class="tabBtn" id="invBtn" data-value="inv">Inventar</td>
+            </tr>
+            <tr id="adminTab" style="display: none">
+                <td><i class='bx bx-cog' ></i></td>
+                <td class="tabBtn" id="adminBtn" data-value="admin">Verwaltung</td>
+            </tr>
+            </tbody>
+        </table>
     </div>
+
+    <table class="bar">
+        <tbody>
+            <tr>
+                <td id="menuBtnCol"><i class='bx bx-menu' id="menuBtn"></i></td>
+                <td id="nameCol">
+                <h1 id="displayName"></h1>
+                </td>
+                <td id="balance"></td>
+            </tr>
+        </tbody>
+    </table>
 
 </div>
 <script type="application/javascript" src="js/index.js"></script>
