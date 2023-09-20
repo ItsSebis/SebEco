@@ -44,10 +44,34 @@
     </div>
     <div class="mainWrapper" id="invWrapper">
         <h1>Inventar</h1>
+        <table id="itemsTable" class="doubleTable">
+            <tbody id="itemsBody">
+
+            </tbody>
+        </table>
+    </div>
+    <div class="mainWrapper" id="tradeWrapper">
+        <h1>Handeln</h1>
+        <table id="tradeTable" class="doubleTable">
+            <tbody id="tradeBody">
+
+            </tbody>
+        </table>
+    </div>
+    <div class="mainWrapper" id="greatWrapper">
+        <h1>Großmarkt</h1>
+        <div id="buyGreat">
+            <h2 id="greatSpecial"></h2>
+            <p id="greatPrice"></p>
+            <input type="number" step="1" placeholder="Anzahl..." id="greatQuantity"><br>
+            <button type="submit" id="greatBuyBtn">Kaufen</button>
+        </div>
     </div>
     <div class="mainWrapper" id="adminWrapper">
         <h1>Verwaltung</h1>
-        <table id="usersTable">
+        <button id="createUser" onclick="createUser()">Benutzer erstellen</button>
+        <p id="resetRes"></p>
+        <table id="usersTable" class="doubleTable">
             <tbody id="usersBody">
 
             </tbody>
@@ -64,6 +88,14 @@
             <tr>
                 <td><i class='bx bxs-category'></i></td>
                 <td class="tabBtn" id="invBtn" data-value="inv">Inventar</td>
+            </tr>
+            <tr>
+                <td><i class='bx bxs-store' ></i></td>
+                <td class="tabBtn" id="tradeBtn" data-value="trade">Angebote</td>
+            </tr>
+            <tr>
+                <td><i class='bx bxs-badge-dollar'></i></td>
+                <td class="tabBtn" id="greatBtn" data-value="great">Großmarkt</td>
             </tr>
             <tr id="adminTab" style="display: none">
                 <td><i class='bx bx-cog' ></i></td>

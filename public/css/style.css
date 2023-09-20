@@ -165,12 +165,32 @@ h1 {
     color: red;
 }
 
-#adminWrapper table {
+.doubleTable {
     margin: 0 auto;
     width: 70%;
     font-size: 1.5rem;
 }
-#adminWrapper table tr:nth-child(odd) {
+.doubleTable tr:nth-child(odd) {
     background-color: #454545;
     color: #fdfdfd;
+}
+.doubleTable tr:nth-child(even) td {
+    border: solid #454545;
+}
+
+.colBtn {
+    cursor: pointer;
+}
+
+#buyGreat {
+    color: #fdfdfd;
+    background-color: #454545;
+    border: solid #454545;
+    border-radius: 14px;
+    width: 60%;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    padding: 15px;
 }
