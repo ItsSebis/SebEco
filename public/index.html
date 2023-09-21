@@ -36,9 +36,7 @@
     <div class="mainWrapper active" id="profileWrapper">
         <h1>Profil</h1>
         <h2>Großmarkt Spezialgebiet</h2>
-        <select id="greatSpecialSelect">
-
-        </select>
+        <select id="greatSpecialSelect"></select>
         <h2>Passwort</h2>
         <input id="oldPw" type="password" placeholder="Altes Passwort..."><br>
         <input id="newPw" type="password" placeholder="Neues Passwort..."><br>
@@ -53,6 +51,10 @@
 
             </tbody>
         </table>
+        <div id="diamondSpawner">
+            <h3>Diamant!</h3>
+            <button onclick="socket.emit('claimDiamond')">Einsammeln</button>
+        </div>
     </div>
     <div class="mainWrapper" id="tradeWrapper">
         <h1>Handeln</h1>

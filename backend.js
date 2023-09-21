@@ -13,7 +13,7 @@ backend.use(cookieParser());
 const port = 7878
 const http = require('http')
 const { Server } = require('socket.io')
-const {set} = require("express/lib/application");
+const {set, all} = require("express/lib/application");
 const server = http.createServer(backend)
 const io = new Server(server, {pingInterval: 1500, pingTimeout: 5000})
 
@@ -47,7 +47,8 @@ const skel = {
     newSpecial: "apple",
 }
 const perishable = ["apple", "banana", "carrots"]
-const allItems = perishable.concat([])
+const fungible = perishable.concat([])
+const allItems = fungible.concat(["diamond"])
 const socketUser = {}
 const userSocket = {}
 
@@ -70,6 +71,11 @@ fs.readFile('./data.json', 'utf8', (err, fileData) => {
         if (data.lastDayCk !== undefined) {
             lastDayCk = data.lastDayCk
         }
+
+        if (statsArchive.diamond === undefined) {
+            statsArchive.diamond = false
+        }
+
         saveData()
         console.log("Loaded data!");
         update().then()
@@ -104,7 +110,7 @@ io.on('connection', (socket) => {
                 socketUser[socket.id] = credentials.user
                 userSocket[credentials.user] = socket.id
                 socket.emit('login', credentials.user)
-                socket.emit('update', {users: users})
+                socket.emit('update', {users: users, diamond: statsArchive.diamond})
                 io.to('authenticated').emit('setOnline', Object.keys(userSocket))
                 console.log(credentials.user + " authenticated on " + socket.id)
             } else {
@@ -290,7 +296,7 @@ io.on('connection', (socket) => {
             socket.emit('kick')
             return
         }
-        if (!allItems.includes(newSpecial)) {
+        if (!fungible.includes(newSpecial)) {
             console.log("All items does not include " + newSpecial)
             return;
         }
@@ -298,13 +304,21 @@ io.on('connection', (socket) => {
         saveData()
     })
 
-    // simulate update -> dev
-    socket.on('getUpdate', () => {
+    // claim spawned diamond
+    socket.on('claimDiamond', () => {
         if (socketUser[socket.id] === null) {
             socket.emit('kick')
             return
         }
-        io.to('authenticated').emit('update', {users: users})
+        if (statsArchive.diamond !== undefined && statsArchive.diamond === true) {
+            if (users[socketUser[socket.id]].inventory['diamond'] === undefined) {
+                users[socketUser[socket.id]].inventory['diamond'] = 1
+            } else {
+                users[socketUser[socket.id]].inventory['diamond'] += 1
+            }
+            statsArchive.diamond = false
+            saveData()
+        }
     })
 
     socket.on('disconnect', (reason) => {
@@ -332,7 +346,7 @@ function setPassword(user, password) {
 
 // write data to file
 function saveData() {
-    io.to('authenticated').emit('update', {users: users})
+    io.to('authenticated').emit('update', {users: users, diamond: statsArchive.diamond})
     const data = {
         users: users,
         stats: pubStats,
@@ -353,7 +367,17 @@ server.listen(port, "0.0.0.0", () => {
     console.log(`Listening for connections on ${port}`)
 })
 
-function calcAveragePrice(product) {
+function getDefaultPrice(product) {
+    if (perishable.includes(product)) {
+        return 5
+    } else if (fungible.includes(product)) {
+        return 10
+    } else {
+        return 40
+    }
+}
+
+function calcAveragePrice(product, setArchive) {
     const pData = pubStats.items[product]
 
     let productVolume = 0
@@ -366,19 +390,48 @@ function calcAveragePrice(product) {
     if (sales !== 0) {
         const avg = productVolume / sales
 
-        if (statsArchive.currentAvg === undefined) {
-            statsArchive.currentAvg = {}
+        if (setArchive === true) {
+            if (statsArchive.currentAvg === undefined) {
+                statsArchive.currentAvg = {}
+            }
+            statsArchive.currentAvg[product] = avg
         }
-        statsArchive.currentAvg[product] = avg
 
         return avg;
     } else {
         if (statsArchive.currentAvg[product] === undefined) {
-            return 5;
+            return getDefaultPrice(product);
         } else {
             return statsArchive.currentAvg[product]
         }
     }
+}
+
+function calcHistoryAveragePrice(product) {
+    if (statsArchive.items === undefined) {
+        return calcAveragePrice(product, false)
+    }
+
+    const itemsHistory = statsArchive.items
+    let productVolume = 0
+    let sales = 0
+    for (const date in itemsHistory) {
+        if (itemsHistory[date][product] === undefined) {
+            continue
+        }
+        const pData = itemsHistory[date][product]
+        for (const price in pData) {
+            productVolume += price*pData[price]
+            sales += pData[price]
+        }
+    }
+
+    if (sales !== 0) {
+        return productVolume / sales;
+    } else {
+        return calcAveragePrice(product, false);
+    }
+
 }
 
 async function update() {
@@ -399,11 +452,18 @@ async function update() {
         }, 100)
 
         for (const item of allItems) {
-            calcAveragePrice(item)
+            calcAveragePrice(item, true)
         }
         for (const uid in users) {
             // waste of intolerable goods
             for (const iid in users[uid].inventory) {
+                if (iid !== users[uid].special) {
+                    let bonus = users[uid].inventory[iid]*(1/4*calcHistoryAveragePrice(iid))
+                    if (fungible.includes(iid) && !perishable.includes(iid)) {
+                        bonus *= 0.25
+                    }
+                    users[uid].balance += bonus
+                }
                 if (perishable.includes(iid)) {
                     let count = users[uid].inventory[iid]
                     count = Math.round((Math.random() * (1/4) + 2/4) * count)
@@ -414,11 +474,11 @@ async function update() {
                 }
             }
 
-            if (users[uid].newSpecial !== undefined && allItems.includes(users[uid].newSpecial)) {
+            if (users[uid].newSpecial !== undefined && fungible.includes(users[uid].newSpecial)) {
                 users[uid].special = users[uid].newSpecial
             }
             // give new price
-            let avg = calcAveragePrice(users[uid].special)
+            let avg = calcAveragePrice(users[uid].special, false)
             users[uid].todayPrice = Math.round((Math.random() * (1/11*avg) + (avg - (1/15*avg))) * 100) / 100
             users[uid].greatBuy = false
         }
@@ -433,6 +493,14 @@ async function update() {
         saveData()
         updating = false
         console.log("New Day!")
+    }
+
+    // every minute
+    if (Math.round(Math.random()*7200) === 787) {
+        // spawn diamond to claim
+        console.log("Diamond spawned")
+        statsArchive.diamond = true
+        saveData()
     }
 
     const nextTime = now

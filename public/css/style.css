@@ -207,3 +207,17 @@ h1 {
     transform: translate(-50%, -50%);
     padding: 15px;
 }
+
+#diamondSpawner {
+    display: none;
+    background-color: #99e3ff;
+    color: #005454;
+    width: 50%;
+    padding: 20px;
+    border: solid #99e3ff;
+    border-radius: 19px;
+    margin: 20px auto 0;
+}
+#diamondSpawner.active {
+    display: block;
+}

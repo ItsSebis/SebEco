@@ -5,10 +5,12 @@ const socket = io()
 let me = ""
 let users = {}
 let online = []
+const fungible = ["apple", "banana", "carrots"]
 const itemNames = {
     apple: "Apfelkiste",
     banana: "Bananen",
-    carrots: "Karotten"
+    carrots: "Karotten",
+    diamond: "Diamant"
 }
 
 // login btn function
@@ -73,6 +75,12 @@ socket.on('update', (backendData) => {
         quantity = Math.round(quantity)
         const pricePP = users[me].todayPrice
         document.getElementById('greatLivePrice').innerText = "$" + (Math.round(quantity*pricePP*100)/100)
+    }
+
+    if (backendData.diamond === true) {
+        document.getElementById("diamondSpawner").classList.add("active")
+    } else {
+        document.getElementById("diamondSpawner").classList.remove("active")
     }
 
     document.getElementById('balance').innerHTML = "<i class='bx bxs-dollar-circle' ></i> " + (Math.floor(users[me].balance*100)/100)
@@ -295,7 +303,7 @@ function createUser() {
 document.getElementById("username").focus();
 
 // generate selection lead
-for (const special in itemNames) {
+for (const special of fungible) {
     const newSpecial = document.createElement('option')
     newSpecial.value = special
     newSpecial.innerText = itemNames[special]
