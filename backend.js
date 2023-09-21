@@ -164,6 +164,8 @@ io.on('connection', (socket) => {
             return
         }
         users[username] = skel
+        users[username].todayPrice = calcAveragePrice(skel.special)
+
         users[username].username = username
         const newPw = Math.round(Math.random() * (999999-100000) + 100000)
         setPassword(username, newPw)
