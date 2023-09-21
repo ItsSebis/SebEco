@@ -378,13 +378,19 @@ function getDefaultPrice(product) {
 }
 
 function calcAveragePrice(product, setArchive) {
-    const pData = pubStats.items[product]
+    if (pubStats.items === undefined) {
+        return getDefaultPrice(product)
+    }
 
     let productVolume = 0
     let sales = 0
-    for (const price in pData) {
-        productVolume += price*pData[price]
-        sales += pData[price]
+    if (pubStats.items[product] !== undefined) {
+        const pData = pubStats.items[product]
+
+        for (const price in pData) {
+            productVolume += price * pData[price]
+            sales += pData[price]
+        }
     }
 
     if (sales !== 0) {
