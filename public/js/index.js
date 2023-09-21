@@ -53,12 +53,28 @@ socket.on('cannotBuy', (err) => {
     alert(err)
 })
 
+// failure while buying on great market
+socket.on('greatFail', (err) => {
+    alert(err)
+})
+
 // update
 socket.on('update', (backendData) => {
     users = backendData.users
     document.getElementById('displayName').innerText = users[me].username
     document.getElementById('greatSpecial').innerText = itemNames[users[me].special]
+    document.getElementById('greatSpecialSelect').value = users[me].newSpecial
     document.getElementById('greatPrice').innerText = "$"+users[me].todayPrice+"/stk"
+
+    if (users[me].greatBuy) {
+        document.getElementById('greatSubmit').innerHTML = "<b>Already bought!</b>"
+    } else {
+        let quantity = document.getElementById("greatQuantity").value
+        quantity = Math.round(quantity)
+        const pricePP = users[me].todayPrice
+        document.getElementById('greatLivePrice').innerText = "$" + (Math.round(quantity*pricePP*100)/100)
+    }
+
     document.getElementById('balance').innerHTML = "<i class='bx bxs-dollar-circle' ></i> " + (Math.floor(users[me].balance*100)/100)
     for (const uid in users) {
         if (document.getElementById('manage'+uid) === null && uid !== "sebi") {
@@ -101,6 +117,11 @@ socket.on('update', (backendData) => {
             nameCol.innerText = itemNames[item]
             countCol.innerText = count.toString()
             offerCol.innerHTML = "<i class='bx bxs-store' ></i>"
+            if (users[me].offers[item] !== undefined) {
+                offerCol.style.color = "lime"
+            } else {
+                offerCol.style.color = "red"
+            }
             offerCol.id = "offer" + me + item
             offerCol.classList.add("colBtn")
             offerCol.onclick = function () {
@@ -110,7 +131,7 @@ socket.on('update', (backendData) => {
                     if (inputPrice === null) {
                         return
                     }
-                    while (!inputPrice.match(/^[+]?([0-9]*[.])?[0-9]+$/)) {
+                    while (!inputPrice.match(/^[+-]?([0-9]*[.])?[0-9]+$/)) {
                         inputPrice = prompt("Geben Sie eine Dezimalzahl als Preis ein z.B. '1.87'!")
                     }
                     const price = parseFloat(inputPrice)
@@ -129,6 +150,11 @@ socket.on('update', (backendData) => {
             document.getElementById('itemsBody').appendChild(row)
         } else {
             document.getElementById('show'+item).getElementsByTagName('td')[1].innerText = count.toString()
+            if (users[me].offers[item] !== undefined) {
+                document.getElementById('show'+item).getElementsByTagName('td')[2].style.color = "lime"
+            } else {
+                document.getElementById('show'+item).getElementsByTagName('td')[2].style.color = "red"
+            }
         }
     }
     for (let i = 0; i < 3; i++) {
@@ -226,7 +252,32 @@ document.getElementById('setPw').onclick = function () {
 
 // great buy
 document.getElementById('greatBuyBtn').onclick = function () {
+    let quantity = document.getElementById("greatQuantity").value
+    if (quantity === undefined || quantity === null) {
+        return
+    }
 
+    quantity = Math.round(quantity)
+    if (quantity <= 0) {
+        alert("Du musst einen Wert über Null eintragen um etwas zu kaufen?!")
+        return
+    }
+    const pricePP = users[me].todayPrice
+    if (confirm("Wirklich " + quantity + " Stück von " + itemNames[users[me].special] + " für " + (Math.round(quantity*pricePP*100)/100) + " kaufen?")) {
+        socket.emit('buyGreat', quantity)
+    }
+}
+document.getElementById('greatQuantity').oninput = function () {
+    let quantity = document.getElementById("greatQuantity").value
+    quantity = Math.round(quantity)
+    const pricePP = users[me].todayPrice
+    document.getElementById('greatLivePrice').innerText = "$" + (Math.round(quantity*pricePP*100)/100)
+}
+
+// change great market special
+document.getElementById('greatSpecialSelect').onchange = function () {
+    const newSpecial = document.getElementById('greatSpecialSelect').value
+    socket.emit('changeSpecial', newSpecial)
 }
 
 // create user
@@ -239,5 +290,14 @@ function createUser() {
     socket.emit('createUser', username)
 }
 
+// ON LOAD
 // focus on login
 document.getElementById("username").focus();
+
+// generate selection lead
+for (const special in itemNames) {
+    const newSpecial = document.createElement('option')
+    newSpecial.value = special
+    newSpecial.innerText = itemNames[special]
+    document.getElementById('greatSpecialSelect').appendChild(newSpecial)
+}

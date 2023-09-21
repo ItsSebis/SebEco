@@ -35,6 +35,10 @@
 
     <div class="mainWrapper active" id="profileWrapper">
         <h1>Profil</h1>
+        <h2>Großmarkt Spezialgebiet</h2>
+        <select id="greatSpecialSelect">
+
+        </select>
         <h2>Passwort</h2>
         <input id="oldPw" type="password" placeholder="Altes Passwort..."><br>
         <input id="newPw" type="password" placeholder="Neues Passwort..."><br>
@@ -63,8 +67,11 @@
         <div id="buyGreat">
             <h2 id="greatSpecial"></h2>
             <p id="greatPrice"></p>
-            <input type="number" step="1" placeholder="Anzahl..." id="greatQuantity"><br>
-            <button type="submit" id="greatBuyBtn">Kaufen</button>
+            <div id="greatSubmit">
+                <p><b id="greatLivePrice"></b></p>
+                <input type="number" step="1" placeholder="Anzahl..." value="5" id="greatQuantity"><br>
+                <button type="submit" id="greatBuyBtn">Kaufen</button>
+            </div>
         </div>
     </div>
     <div class="mainWrapper" id="adminWrapper">

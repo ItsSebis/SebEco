@@ -35,6 +35,7 @@ backend.get('/getcookie', (req, res) => {
 let updating = false
 let users = {}
 let pubStats = {}
+let statsArchive = {}
 
 // backend vars
 let passwords = {}
@@ -46,7 +47,7 @@ const skel = {
     newSpecial: "apple",
 }
 const perishable = ["apple", "banana", "carrots"]
-const allItems = perishable + []
+const allItems = perishable.concat([])
 const socketUser = {}
 const userSocket = {}
 
@@ -59,6 +60,9 @@ fs.readFile('./data.json', 'utf8', (err, fileData) => {
         }
         if (data.stats !== undefined) {
             pubStats = data.stats
+        }
+        if (data.oldStats !== undefined) {
+            statsArchive = data.oldStats
         }
         if (data.passwords !== undefined) {
             passwords = data.passwords
@@ -168,7 +172,7 @@ io.on('connection', (socket) => {
         }
         const seller = socketUser[socket.id]
         const product = offer.item
-        const price = offer.price
+        const price = Math.round(offer.price*100)/100
 
         if (users[seller].offers === undefined) {
             users[seller].offers = {}
@@ -210,6 +214,7 @@ io.on('connection', (socket) => {
                 delete users[buyer].inventory[product]
             }
             delete users[seller].offers[product]
+            saveData()
             return
         }
 
@@ -239,6 +244,57 @@ io.on('connection', (socket) => {
         }
         pubStats.items[product][price]++
 
+        if (users[seller].stats === undefined) {
+            users[seller].stats = {}
+        }
+        if (users[seller].stats.profit === undefined) {
+            users[seller].stats.profit = 0
+        }
+        users[seller].stats.profit += price
+
+        saveData()
+    })
+
+    // buy on the great market
+    socket.on('buyGreat', (quantity) => {
+        if (socketUser[socket.id] === null) {
+            socket.emit('kick')
+            return
+        }
+        quantity = parseInt(quantity)
+        const buyer = socketUser[socket.id]
+        const product = users[buyer].special
+        const pricePP = users[buyer].todayPrice
+        const price = Math.round(pricePP*quantity*100)/100
+
+        if (users[buyer].greatBuy) {
+            return;
+        }
+        if (price > users[buyer].balance) {
+            socket.emit('greatFail', "You do not have enough money to buy this much!")
+            return
+        }
+
+        if (users[buyer].inventory[product] === undefined) {
+            users[buyer].inventory[product] = 0
+        }
+        users[buyer].inventory[product] += quantity
+        users[buyer].balance -= price
+        users[buyer].greatBuy = true
+        saveData()
+    })
+
+    // change great market special
+    socket.on('changeSpecial', (newSpecial) => {
+        if (socketUser[socket.id] === null) {
+            socket.emit('kick')
+            return
+        }
+        if (!allItems.includes(newSpecial)) {
+            console.log("All items does not include " + newSpecial)
+            return;
+        }
+        users[socketUser[socket.id]].newSpecial = newSpecial
         saveData()
     })
 
@@ -280,6 +336,7 @@ function saveData() {
     const data = {
         users: users,
         stats: pubStats,
+        oldStats: statsArchive,
         passwords: passwords,
         lastDayCk: lastDayCk,
     }
@@ -295,6 +352,34 @@ function saveData() {
 server.listen(port, "0.0.0.0", () => {
     console.log(`Listening for connections on ${port}`)
 })
+
+function calcAveragePrice(product) {
+    const pData = pubStats.items[product]
+
+    let productVolume = 0
+    let sales = 0
+    for (const price in pData) {
+        productVolume += price*pData[price]
+        sales += pData[price]
+    }
+
+    if (sales !== 0) {
+        const avg = productVolume / sales
+
+        if (statsArchive.currentAvg === undefined) {
+            statsArchive.currentAvg = {}
+        }
+        statsArchive.currentAvg[product] = avg
+
+        return avg;
+    } else {
+        if (statsArchive.currentAvg[product] === undefined) {
+            return 5;
+        } else {
+            return statsArchive.currentAvg[product]
+        }
+    }
+}
 
 async function update() {
     const startTime = Date.now()
@@ -312,12 +397,16 @@ async function update() {
         setTimeout(function () {
             io.emit('kick')
         }, 100)
+
+        for (const item of allItems) {
+            calcAveragePrice(item)
+        }
         for (const uid in users) {
             // waste of intolerable goods
             for (const iid in users[uid].inventory) {
                 if (perishable.includes(iid)) {
                     let count = users[uid].inventory[iid]
-                    count = Math.round((Math.random() * (1/4) + 3/4) * count)
+                    count = Math.round((Math.random() * (1/4) + 2/4) * count)
                     users[uid].inventory[iid] = count
                 }
                 if (users[uid].inventory[iid] <= 0) {
@@ -325,13 +414,20 @@ async function update() {
                 }
             }
 
-            if (users[uid].newSpecial !== undefined) {
+            if (users[uid].newSpecial !== undefined && allItems.includes(users[uid].newSpecial)) {
                 users[uid].special = users[uid].newSpecial
             }
             // give new price
-            let avg = 5
-            users[uid].todayPrice = Math.round((Math.random() * (1/10*avg) + (avg - (1/20*avg))) * 100) / 100
+            let avg = calcAveragePrice(users[uid].special)
+            users[uid].todayPrice = Math.round((Math.random() * (1/11*avg) + (avg - (1/15*avg))) * 100) / 100
             users[uid].greatBuy = false
+        }
+        if (pubStats.items !== undefined && Object.keys(pubStats.items).length > 0) {
+            if (statsArchive.items === undefined) {
+                statsArchive.items = {}
+            }
+            statsArchive.items[Date.now()] = pubStats.items
+            pubStats.items = {}
         }
         lastDayCk = startTime
         saveData()
@@ -343,6 +439,7 @@ async function update() {
     nextTime.setMinutes(nextTime.getMinutes()+1)
     nextTime.setSeconds(0)
     nextTime.setMilliseconds(0)
+    console.log(Date.now()-startTime + "ms")
     let timeout = Date.parse(nextTime.toUTCString())-Date.now()
     if (timeout <= 0) {
         timeout = 0
