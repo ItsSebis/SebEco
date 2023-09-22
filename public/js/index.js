@@ -85,7 +85,7 @@ socket.on('update', (backendData) => {
 
     let profitUser = null
     for (const uid in users) {
-        if (profitUser === null) {
+        if (profitUser === null || users[profitUser].stats === undefined || users[profitUser].stats.profit === undefined) {
             profitUser = uid
         } else if (users[uid].stats !== undefined && users[uid].stats.profit !== undefined && users[uid].stats.profit > users[profitUser].stats.profit) {
             profitUser = uid
