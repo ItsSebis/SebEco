@@ -13,7 +13,6 @@ backend.use(cookieParser());
 const port = 7878
 const http = require('http')
 const { Server } = require('socket.io')
-const {set, all} = require("express/lib/application");
 const server = http.createServer(backend)
 const io = new Server(server, {pingInterval: 1500, pingTimeout: 5000})
 
@@ -173,7 +172,6 @@ io.on('connection', (socket) => {
         users[username] = skel
         users[username].todayPrice = calcAveragePrice(skel.special)
 
-        users[username].username = username
         const newPw = Math.round(Math.random() * (999999-100000) + 100000)
         setPassword(username, newPw)
         socket.emit('resetPwResult', "Benutzer '" + username + "' erstellt mit Passwort `" + newPw + "`")

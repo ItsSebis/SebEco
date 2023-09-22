@@ -63,7 +63,7 @@ socket.on('greatFail', (err) => {
 // update
 socket.on('update', (backendData) => {
     users = backendData.users
-    document.getElementById('displayName').innerText = users[me].username
+    document.getElementById('displayName').innerText = me
     document.getElementById('greatSpecial').innerText = itemNames[users[me].special]
     document.getElementById('greatSpecialSelect').value = users[me].newSpecial
     document.getElementById('greatPrice').innerText = "$"+users[me].todayPrice+"/stk"
