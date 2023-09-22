@@ -464,7 +464,7 @@ function calcAveragePrice(product, setArchive) {
 
         return avg;
     } else {
-        if (statsArchive.currentAvg[product] === undefined) {
+        if (statsArchive.currentAvg === undefined || statsArchive.currentAvg[product] === undefined) {
             return getDefaultPrice(product);
         } else {
             return statsArchive.currentAvg[product]
