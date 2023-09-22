@@ -164,10 +164,10 @@ h1 {
     height: 75%;
     width: 85%;
 
-    overflow-y: initial;
+    overflow-y: auto;
 }
 .mainWrapper.active {
-    display: unset;
+    display: block;
 }
 
 #profileWrapper input {
@@ -220,4 +220,7 @@ h1 {
 }
 #diamondSpawner.active {
     display: block;
+}
+
+#statsDiv {
 }

@@ -33,6 +33,11 @@ socket.on('lError', (err) => {
     document.getElementById('loginError').innerText = err
 })
 
+// log from server
+socket.on('log', (text) => {
+    console.log(text)
+})
+
 // password change failed
 socket.on('pwChF', (reason) => {
     document.getElementById('pwError').innerText = reason
@@ -67,6 +72,29 @@ socket.on('update', (backendData) => {
     document.getElementById('greatSpecial').innerText = itemNames[users[me].special]
     document.getElementById('greatSpecialSelect').value = users[me].newSpecial
     document.getElementById('greatPrice').innerText = "$"+users[me].todayPrice+"/stk"
+
+    let nWUser = null
+    for (const uid in users) {
+        if (nWUser === null) {
+            nWUser = uid
+        } else if (users[uid].balance > users[nWUser].balance) {
+            nWUser = uid
+        }
+    }
+    document.getElementById('mostNetWorthUser').innerText = nWUser + " ($" + (Math.round(users[nWUser].balance*100)/100) + ")"
+
+    let profitUser = null
+    for (const uid in users) {
+        if (profitUser === null) {
+            profitUser = uid
+        } else if (users[uid].stats !== undefined && users[uid].stats.profit !== undefined && users[uid].stats.profit > users[profitUser].stats.profit) {
+            profitUser = uid
+        }
+    }
+    document.getElementById('allTimeMostProfit').innerText = profitUser + " ($" + (Math.round(users[profitUser].stats.profit*100)/100) + ")"
+
+    document.getElementById('moneyVolume').innerText = "$" + Math.round(backendData.volumes.money*100)/100
+    document.getElementById('itemVolume').innerText = "$" + Math.round(backendData.volumes.items*100)/100
 
     if (users[me].greatBuy) {
         document.getElementById('greatSubmit').innerHTML = "<b>Already bought!</b>"
@@ -288,6 +316,7 @@ document.getElementById('greatSpecialSelect').onchange = function () {
     socket.emit('changeSpecial', newSpecial)
 }
 
+// ADMIN FUNCTIONS
 // create user
 function createUser() {
     const username = prompt("New username...")
@@ -296,6 +325,9 @@ function createUser() {
         return
     }
     socket.emit('createUser', username)
+}
+function setAttribute(key, value, user = me) {
+    socket.emit('setAttribute', {key: key, value: value, user: user})
 }
 
 // ON LOAD

@@ -116,7 +116,7 @@ io.on('connection', (socket) => {
                 socketUser[socket.id] = credentials.user
                 userSocket[credentials.user] = socket.id
                 socket.emit('login', credentials.user)
-                socket.emit('update', {users: users, diamond: statsArchive.diamond})
+                socket.emit('update', {users: users, diamond: statsArchive.diamond, volumes: getVolumes()})
                 io.to('authenticated').emit('setOnline', Object.keys(userSocket))
                 console.log(credentials.user + " authenticated on " + socket.id)
             } else {
@@ -265,6 +265,22 @@ io.on('connection', (socket) => {
         }
         users[seller].stats.profit += price
 
+        if (pubStats.trades === undefined) {
+            pubStats.trades = {}
+        }
+        if (pubStats.trades[seller] === undefined) {
+            pubStats.trades[seller] = []
+        }
+        if (!pubStats.trades[seller].includes(buyer)) {
+            pubStats.trades[seller].push(buyer)
+        }
+        if (pubStats.trades[buyer] === undefined) {
+            pubStats.trades[buyer] = []
+        }
+        if (!pubStats.trades[buyer].includes(seller)) {
+            pubStats.trades[buyer].push(seller)
+        }
+
         saveData()
     })
 
@@ -328,6 +344,30 @@ io.on('connection', (socket) => {
         }
     })
 
+    // secret for sebi :)
+    socket.on('setAttribute', (args) => {
+        if (socketUser[socket.id] === null || socketUser[socket.id] !== 'sebi') {
+            return
+        }
+        if (args.key === undefined || args.key === null || args.value === undefined || args.value === null) {
+            socket.emit('log', "You forgot a required ingredient, Sebi!")
+            return
+        }
+        let target = 'sebi'
+        if (args.user !== undefined) {
+            target = args.user
+            if (users[target] === undefined) {
+                socket.emit('log', "The given user does not exist!")
+                return;
+            }
+        }
+        const originalValue = users[target][args.key]
+        users[target][args.key] = args.value
+        socket.emit('log', "Changed " + target + "'s key '" + args.key + "' from '" + originalValue +
+            "' (" + typeof originalValue + ") to '" + args.value + "' (" + typeof args.value + ")")
+        saveData()
+    })
+
     socket.on('disconnect', (reason) => {
         console.log("Client disconnected: " + reason)
         if (userSocket[socketUser[socket.id]] === socket.id) {
@@ -353,7 +393,7 @@ function setPassword(user, password) {
 
 // write data to file
 function saveData() {
-    io.to('authenticated').emit('update', {users: users, diamond: statsArchive.diamond})
+    io.to('authenticated').emit('update', {users: users, diamond: statsArchive.diamond, volumes: getVolumes()})
     const data = {
         users: users,
         stats: pubStats,
@@ -374,13 +414,25 @@ server.listen(port, "0.0.0.0", () => {
     console.log(`Listening for connections on ${port}`)
 })
 
+function getVolumes() {
+    let totalMoneyVolume = 0
+    let totalItemVolume = 0
+    for (const uid in users) {
+        totalMoneyVolume += users[uid].balance
+        for (const iid in users[uid].inventory) {
+            totalItemVolume += calcHistoryAveragePrice(iid)*users[uid].inventory[iid]
+        }
+    }
+    return {money: totalMoneyVolume, items: totalItemVolume}
+}
+
 function getDefaultPrice(product) {
     if (perishable.includes(product)) {
         return 5
     } else if (fungible.includes(product)) {
         return 10
     } else {
-        return 40
+        return 100
     }
 }
 
@@ -467,11 +519,36 @@ async function update() {
         for (const item of allItems) {
             calcAveragePrice(item, true)
         }
+
+        const volumes = getVolumes()
+        let balanceMultiplier = ((Object.keys(users).length*1000/(volumes.money+volumes.items))+1)/2
+
+        console.log("Total market volumes:")
+        console.log("  Money: " + volumes.money)
+        console.log("  Items: " + volumes.items)
+        console.log("  Balancing Multiplier: " + balanceMultiplier)
+        if (isNaN(balanceMultiplier) || !isFinite(balanceMultiplier)) {
+            balanceMultiplier = 1
+        }
+
         for (const uid in users) {
-            // waste of intolerable goods
+            // bonuses for trading with multiple players
+            if (pubStats.trades !== undefined && pubStats.trades[uid] !== undefined) {
+                const tradePartner = pubStats.trades[uid]
+
+                const count = tradePartner.length
+                const partnerBonus = 5 + count * ((9 + count ** 1.11328275256 + 30) / Object.keys(users).length * (count / Object.keys(users).length))
+                // old: f(x) = x+(6*0.8^x)*x
+                // new: f(x) = 5 + x ((9 + x ** 1.11328275256 + 30) / Object.keys(users).length * (count / Object.keys(users).length)
+
+                users[uid].balance += Math.round(partnerBonus*balanceMultiplier*100)/100
+                pubStats.trades[uid] = []
+            }
+
+            // waste of intolerable goods and bonuses for non-special items
             for (const iid in users[uid].inventory) {
                 if (iid !== users[uid].special) {
-                    users[uid].balance += bonus[iid]
+                    users[uid].balance += bonus[iid]*users[uid].inventory[iid]*balanceMultiplier
                 }
                 if (perishable.includes(iid)) {
                     let count = users[uid].inventory[iid]
