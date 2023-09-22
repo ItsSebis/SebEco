@@ -50,9 +50,9 @@ const perishable = ["apple", "banana", "carrots"]
 const fungible = perishable.concat([])
 const allItems = fungible.concat(["diamond"])
 const bonus = {
-    apple: 5,
-    banana: 5.5,
-    carrots: 5.5,
+    apple: 1,
+    banana: 1.25,
+    carrots: 1.25,
 
     diamond: 25,
 }
