@@ -49,6 +49,13 @@ const skel = {
 const perishable = ["apple", "banana", "carrots"]
 const fungible = perishable.concat([])
 const allItems = fungible.concat(["diamond"])
+const bonus = {
+    apple: 5,
+    banana: 5.5,
+    carrots: 5.5,
+
+    diamond: 25,
+}
 const socketUser = {}
 const userSocket = {}
 
@@ -466,15 +473,11 @@ async function update() {
             // waste of intolerable goods
             for (const iid in users[uid].inventory) {
                 if (iid !== users[uid].special) {
-                    let bonus = users[uid].inventory[iid]*(1/4*calcHistoryAveragePrice(iid))
-                    if (fungible.includes(iid) && !perishable.includes(iid)) {
-                        bonus *= 0.25
-                    }
-                    users[uid].balance += bonus
+                    users[uid].balance += bonus[iid]
                 }
                 if (perishable.includes(iid)) {
                     let count = users[uid].inventory[iid]
-                    count = Math.round((Math.random() * (1/4) + 2/4) * count)
+                    count = Math.round((Math.random() * (1/8) + 1/2) * count)
                     users[uid].inventory[iid] = count
                 }
                 if (users[uid].inventory[iid] <= 0) {
