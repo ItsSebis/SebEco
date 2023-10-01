@@ -20,6 +20,9 @@ backend.use(express.static("./public"))
 backend.get('/', (req, res) => {
     res.sendFile(__dirname + '/public/index.html')
 });
+backend.get('/stats', (req, res) => {
+    res.sendFile(__dirname + '/public/charts.html')
+});
 backend.get('/setcookie', (req, res) => {
     res.cookie(`Cookie token name`,`encrypted cookie string Value`);
     res.send('Cookie have been saved successfully');
@@ -125,6 +128,12 @@ io.on('connection', (socket) => {
                 console.log(credentials.user + " failed to authenticate on " + socket.id)
             }
         });
+    })
+
+    // charts client
+    socket.on('requestStats', () => {
+        socket.join('charts')
+        sendStats(socket.id)
     })
 
     // set password
@@ -496,7 +505,10 @@ function calcHistoryAveragePrice(product) {
     } else {
         return calcAveragePrice(product, false);
     }
+}
 
+function sendStats(target='charts') {
+    io.to(target).emit('updateStats', {cur: pubStats, arch: statsArchive})
 }
 
 async function update() {
@@ -588,6 +600,9 @@ async function update() {
         statsArchive.diamond = true
         saveData()
     }
+
+    // update stats
+    sendStats()
 
     const nextTime = now
     nextTime.setMinutes(nextTime.getMinutes()+1)
