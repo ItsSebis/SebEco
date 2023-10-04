@@ -6,6 +6,16 @@ socket.on('updateStats', (backendStats) => {
     console.log(backendStats)
     const rawStats = {}
 
+    for (const iid of backendStats.allItems) {
+        if (document.getElementById('option'+iid) === null) {
+            const itemOption = document.createElement('option')
+            itemOption.id = 'option'+iid
+            itemOption.value = iid
+            itemOption.innerText = iid
+            document.getElementById('selectItem').appendChild(itemOption)
+        }
+    }
+
     // all archived stats
     if (backendStats.arch.items !== undefined) {
         for (const dateNum in backendStats.arch.items) {
@@ -18,7 +28,7 @@ socket.on('updateStats', (backendStats) => {
             if (rawStats[dateString] === undefined) {
                 rawStats[dateString] = {items: thisData}
             } else {
-                const currentData = rawStats[dateString]
+                const currentData = rawStats[dateString].items
                 const merged = {}
 
                 for (const item in currentData) {
@@ -31,7 +41,7 @@ socket.on('updateStats', (backendStats) => {
                         merged[item][price] = currentData[item][price]
                     }
                     for (const price in thisData[item]) {
-                        if (currentData[item][price] !== undefined) {
+                        if (currentData[item] !== undefined && currentData[item][price] !== undefined) {
                             merged[item][price] = thisData[item][price] + currentData[item][price]
                         } else {
                             merged[item][price] = thisData[item][price]
@@ -67,28 +77,31 @@ socket.on('updateStats', (backendStats) => {
     for (const dateString in rawStats) {
         completeStats[dateString] = {}
 
-        for (const iid in rawStats[dateString]) {
+        for (const iid in rawStats[dateString].items) {
+            console.log(iid)
             let high = 0
             let low = Infinity
             let sales = 0
             let totalVolume = 0
 
-            for (const price in rawStats[dateString][iid]) {
+            for (const price in rawStats[dateString].items[iid]) {
                 if (high < price) {
                     high = price
                 }
                 if (low > price) {
                     low = price
                 }
-                sales += rawStats[dateString][iid][price]
-                totalVolume += rawStats[dateString][iid][price] * price
+                sales += rawStats[dateString].items[iid][price]
+                totalVolume += rawStats[dateString].items[iid][price] * price
             }
 
             completeStats[dateString][iid] = {avg: (totalVolume/sales), high: high, low: low}
-            average.push(totalVolume/sales)
-            highArray.push(high)
-            lowArray.push(low)
-            dates.push(dateString)
+            if (iid === currentItem) {
+                average.push(totalVolume / sales)
+                highArray.push(high)
+                lowArray.push(low)
+                dates.push(dateString + " (" + sales + ")")
+            }
         }
     }
 
@@ -96,7 +109,7 @@ socket.on('updateStats', (backendStats) => {
 
     console.log(dates)
 
-    const ctx = document.getElementById('chart');
+    console.log(completeStats)
 
     const data = {
         labels: dates,
@@ -125,6 +138,6 @@ socket.on('updateStats', (backendStats) => {
         options: {}
     };
 
-    //new Chart(ctx, config);
+    update(config)
 
 })
