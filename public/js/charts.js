@@ -85,11 +85,12 @@ socket.on('updateStats', (backendStats) => {
             let totalVolume = 0
 
             for (const price in rawStats[dateString].items[iid]) {
-                if (high < price) {
-                    high = price
+                const priceNum = Number(price)
+                if (high < priceNum) {
+                    high = priceNum
                 }
-                if (low > price) {
-                    low = price
+                if (low > priceNum) {
+                    low = priceNum
                 }
                 sales += rawStats[dateString].items[iid][price]
                 totalVolume += rawStats[dateString].items[iid][price] * price
