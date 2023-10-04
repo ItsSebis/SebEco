@@ -7,12 +7,18 @@ socket.on('updateStats', (backendStats) => {
     const rawStats = {}
 
     for (const iid of backendStats.allItems) {
+        let avgPriceStr = ""
+        if (backendStats.arch.currentAvg[iid] !== undefined) {
+            avgPriceStr = " ($" + (Math.round(backendStats.arch.currentAvg[iid]*100)/100) + ")"
+        }
         if (document.getElementById('option'+iid) === null) {
             const itemOption = document.createElement('option')
             itemOption.id = 'option'+iid
             itemOption.value = iid
-            itemOption.innerText = iid
+            itemOption.innerText = iid + avgPriceStr
             document.getElementById('selectItem').appendChild(itemOption)
+        } else {
+            document.getElementById('option'+iid).innerText = iid + avgPriceStr
         }
     }
 
