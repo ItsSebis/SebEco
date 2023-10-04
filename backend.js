@@ -13,12 +13,16 @@ backend.use(cookieParser());
 const port = 7878
 const http = require('http')
 const { Server } = require('socket.io')
+const {all} = require("express/lib/application");
 const server = http.createServer(backend)
 const io = new Server(server, {pingInterval: 1500, pingTimeout: 5000})
 
 backend.use(express.static("./public"))
 backend.get('/', (req, res) => {
     res.sendFile(__dirname + '/public/index.html')
+});
+backend.get('/stats', (req, res) => {
+    res.sendFile(__dirname + '/public/charts.html')
 });
 backend.get('/setcookie', (req, res) => {
     res.cookie(`Cookie token name`,`encrypted cookie string Value`);
@@ -127,6 +131,12 @@ io.on('connection', (socket) => {
         });
     })
 
+    // charts client
+    socket.on('requestStats', () => {
+        socket.join('charts')
+        sendStats(socket.id)
+    })
+
     // set password
     socket.on('pw', (data) => {
         if (socketUser[socket.id] === null) {
@@ -191,7 +201,7 @@ io.on('connection', (socket) => {
             users[seller].offers = {}
         }
         users[seller].offers[product] = price
-        saveData()
+        sendUpdate()
     })
     socket.on('removeOffer', (product) => {
         if (socketUser[socket.id] === null) {
@@ -201,7 +211,7 @@ io.on('connection', (socket) => {
         if (users[socketUser[socket.id]].offers[product] !== undefined) {
             delete users[socketUser[socket.id]].offers[product]
         }
-        saveData()
+        sendUpdate()
     })
     socket.on('buyOffer', (conditions) => {
         if (socketUser[socket.id] === null) {
@@ -227,7 +237,7 @@ io.on('connection', (socket) => {
                 delete users[buyer].inventory[product]
             }
             delete users[seller].offers[product]
-            saveData()
+            sendUpdate()
             return
         }
 
@@ -280,8 +290,7 @@ io.on('connection', (socket) => {
         if (!pubStats.trades[buyer].includes(seller)) {
             pubStats.trades[buyer].push(seller)
         }
-
-        saveData()
+        sendUpdate()
     })
 
     // buy on the great market
@@ -310,7 +319,7 @@ io.on('connection', (socket) => {
         users[buyer].inventory[product] += quantity
         users[buyer].balance -= price
         users[buyer].greatBuy = true
-        saveData()
+        sendUpdate()
     })
 
     // change great market special
@@ -324,7 +333,7 @@ io.on('connection', (socket) => {
             return;
         }
         users[socketUser[socket.id]].newSpecial = newSpecial
-        saveData()
+        sendUpdate()
     })
 
     // claim spawned diamond
@@ -340,7 +349,7 @@ io.on('connection', (socket) => {
                 users[socketUser[socket.id]].inventory['diamond'] += 1
             }
             statsArchive.diamond = false
-            saveData()
+            sendUpdate()
         }
     })
 
@@ -365,7 +374,7 @@ io.on('connection', (socket) => {
         users[target][args.key] = args.value
         socket.emit('log', "Changed " + target + "'s key '" + args.key + "' from '" + originalValue +
             "' (" + typeof originalValue + ") to '" + args.value + "' (" + typeof args.value + ")")
-        saveData()
+        sendUpdate()
     })
 
     socket.on('disconnect', (reason) => {
@@ -386,14 +395,13 @@ function setPassword(user, password) {
             // Store hash in your password DB.
             if (err) throw err;
             passwords[user] = hash
-            saveData()
         });
     });
 }
 
 // write data to file
 function saveData() {
-    io.to('authenticated').emit('update', {users: users, diamond: statsArchive.diamond, volumes: getVolumes()})
+    sendUpdate()
     const data = {
         users: users,
         stats: pubStats,
@@ -496,7 +504,14 @@ function calcHistoryAveragePrice(product) {
     } else {
         return calcAveragePrice(product, false);
     }
+}
 
+function sendStats(target='charts') {
+    io.to(target).emit('updateStats', {cur: pubStats, arch: statsArchive, allItems: allItems})
+}
+
+function sendUpdate() {
+    io.to('authenticated').emit('update', {users: users, diamond: statsArchive.diamond, volumes: getVolumes()})
 }
 
 async function update() {
@@ -576,7 +591,6 @@ async function update() {
             pubStats.items = {}
         }
         lastDayCk = startTime
-        saveData()
         updating = false
         console.log("New Day!")
     }
@@ -586,8 +600,12 @@ async function update() {
         // spawn diamond to claim
         console.log("Diamond spawned")
         statsArchive.diamond = true
-        saveData()
     }
+
+    // update stats
+    sendStats()
+    // save data
+    saveData()
 
     const nextTime = now
     nextTime.setMinutes(nextTime.getMinutes()+1)

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <link rel="stylesheet" href="css/charts.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href='https://unpkg.com/boxicons@2.1.2/css/boxicons.min.css' rel='stylesheet'>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@100&family=Roboto+Mono:wght@300&display=swap"
+          rel="stylesheet">
+    <link rel="icon" href="img/charts.png">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.13.2/themes/smoothness/jquery-ui.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.13.2/jquery-ui.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chosen/1.8.7/chosen.min.css"
+          integrity="sha512-yVvxUQV0QESBt1SyZbNJMAwyKvFTLMyXSyBHDO4BG5t7k/Lw34tyqlSDlKIrIENIzCl+RVUNjmCPG+V/GMesRw=="
+          crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+
+    <title>SebEcoSim</title>
+</head>
+<body>
+<select id="selectItem" style="position: absolute; top: 10px; right: 10px; font-size: 1.5rem;" onchange="currentItem = document.getElementById('selectItem').value; socket.emit('requestStats');">
+</select>
+<canvas id="chart"></canvas>
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const socket = io()
+  let chart = undefined
+  const ctx = document.getElementById('chart');
+  socket.emit('requestStats')
+  function update(config) {
+      if (chart === undefined) {
+          chart = new Chart(ctx, config);
+      } else {
+          chart.destroy()
+          chart = new Chart(ctx, config)
+      }
+  }
+</script>
+<script src="js/charts.js"></script>
+</body>
+</html>
