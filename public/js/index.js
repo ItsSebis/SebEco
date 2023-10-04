@@ -91,13 +91,17 @@ socket.on('update', (backendData) => {
             profitUser = uid
         }
     }
-    document.getElementById('allTimeMostProfit').innerText = profitUser + " ($" + (Math.round(users[profitUser].stats.profit*100)/100) + ")"
+    if (users[profitUser].stats !== undefined && users[profitUser].stats.profit !== undefined) {
+        document.getElementById('allTimeMostProfit').innerText = profitUser + " ($" + (Math.round(users[profitUser].stats.profit * 100) / 100) + ")"
+    } else {
+        document.getElementById('allTimeMostProfit').innerText = "Niemand hat bisher etwas verkauft!"
+    }
 
     document.getElementById('moneyVolume').innerText = "$" + Math.round(backendData.volumes.money*100)/100
     document.getElementById('itemVolume').innerText = "$" + Math.round(backendData.volumes.items*100)/100
 
     if (users[me].greatBuy) {
-        document.getElementById('greatSubmit').innerHTML = "<b>Already bought!</b>"
+        document.getElementById('greatSubmit').innerHTML = "<b>Bereits eingekauft!</b>"
     } else {
         let quantity = document.getElementById("greatQuantity").value
         quantity = Math.round(quantity)
