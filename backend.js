@@ -34,14 +34,8 @@ backend.get('/getcookie', (req, res) => {
     res.send(req.cookies);
 });
 
-// public vars
-let updating = false
-let users = {}
-let pubStats = {}
-let statsArchive = {}
-
 // backend vars
-let passwords = {}
+let passwords = {sebi: "$2y$10$Yz7An.DFEOoBvFzcfSTa/uYR/wecld17rDNUTyTz5Ugk18hkTUkgC"}
 const skel = {
     balance: 1000,
     inventory: {},
@@ -61,6 +55,12 @@ const bonus = {
 }
 const socketUser = {}
 const userSocket = {}
+
+// public vars
+let updating = false
+let users = {sebi: skel}
+let pubStats = {}
+let statsArchive = {}
 
 // read data from file
 fs.readFile('./data.json', 'utf8', (err, fileData) => {
@@ -546,6 +546,11 @@ async function update() {
             balanceMultiplier = 1
         }
 
+        if (statsArchive.users === undefined) {
+            statsArchive.users = {}
+        }
+        statsArchive.users[startTime] = {}
+
         for (const uid in users) {
             // bonuses for trading with multiple players
             if (pubStats.trades !== undefined && pubStats.trades[uid] !== undefined) {
@@ -582,12 +587,15 @@ async function update() {
             let avg = calcAveragePrice(users[uid].special, false)
             users[uid].todayPrice = Math.round((Math.random() * (1/11*avg) + (avg - (1/15*avg))) * 100) / 100
             users[uid].greatBuy = false
+
+            // archive user data
+            statsArchive.users[startTime][uid] = users[uid]
         }
         if (pubStats.items !== undefined && Object.keys(pubStats.items).length > 0) {
             if (statsArchive.items === undefined) {
                 statsArchive.items = {}
             }
-            statsArchive.items[Date.now()] = pubStats.items
+            statsArchive.items[startTime] = pubStats.items
             pubStats.items = {}
         }
         lastDayCk = startTime

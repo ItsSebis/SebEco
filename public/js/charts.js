@@ -28,7 +28,7 @@ socket.on('updateStats', (backendStats) => {
 
             const date = new Date(parseInt(dateNum))
             const thisData = backendStats.arch.items[dateNum]
-            const dateString = date.getDate().toString() + "." + date.getMonth().toString() + "." + date.getFullYear().toString()
+            const dateString = date.getDate().toString() + "." + (date.getMonth()+1).toString() + "." + date.getFullYear().toString()
 
             console.log(dateString)
             if (rawStats[dateString] === undefined) {
