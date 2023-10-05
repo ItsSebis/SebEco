@@ -35,6 +35,7 @@
 
     <div class="mainWrapper active" id="profileWrapper">
         <h1>Profil</h1>
+        <p id="motd"></p>
         <h2>Großmarkt Spezialgebiet</h2>
         <select id="greatSpecialSelect"></select>
         <h2>Passwort</h2>
@@ -51,6 +52,12 @@
 
             </tbody>
         </table>
+        <div id="storageBroken">
+            <h3>Lager kaputt!</h3>
+            <p>Materialien gebraucht zum reparieren:</p>
+            <p id="repairCost"></p>
+            <button onclick="repairStorage();">Reparieren</button>
+        </div>
         <div id="diamondSpawner">
             <h3>Diamant!</h3>
             <button onclick="socket.emit('claimDiamond')">Einsammeln</button>
@@ -76,16 +83,6 @@
             </div>
         </div>
     </div>
-    <div class="mainWrapper" id="adminWrapper">
-        <h1>Verwaltung</h1>
-        <button id="createUser" onclick="createUser()">Benutzer erstellen</button>
-        <p id="resetRes"></p>
-        <table id="usersTable" class="doubleTable">
-            <tbody id="usersBody">
-
-            </tbody>
-        </table>
-    </div>
     <div class="mainWrapper" id="statsWrapper">
         <h1>Statistiken</h1>
         <div id="statsDiv">
@@ -98,6 +95,16 @@
             <h3>Verteilt in Inventaren</h3>
             <p id="itemVolume"></p>
         </div>
+    </div>
+    <div class="mainWrapper" id="adminWrapper">
+        <h1>Verwaltung</h1>
+        <button id="createUser" onclick="createUser()">Benutzer erstellen</button>
+        <p id="resetRes"></p>
+        <table id="usersTable" class="doubleTable">
+            <tbody id="usersBody">
+
+            </tbody>
+        </table>
     </div>
 
     <div class="menu" id="menu">
@@ -119,13 +126,13 @@
                 <td><i class='bx bxs-badge-dollar'></i></td>
                 <td class="tabBtn" id="greatBtn" data-value="great">Großmarkt</td>
             </tr>
-            <tr id="adminTab" style="display: none">
-                <td><i class='bx bx-cog' ></i></td>
-                <td class="tabBtn" id="adminBtn" data-value="admin">Verwaltung</td>
-            </tr>
             <tr>
                 <td><i class='bx bx-stats'></i></td>
                 <td class="tabBtn" id="statsBtn" data-value="stats">Statistiken</td>
+            </tr>
+            <tr id="adminTab" style="display: none">
+                <td><i class='bx bx-cog' ></i></td>
+                <td class="tabBtn" id="adminBtn" data-value="admin">Verwaltung</td>
             </tr>
             </tbody>
         </table>

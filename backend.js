@@ -13,7 +13,6 @@ backend.use(cookieParser());
 const port = 7878
 const http = require('http')
 const { Server } = require('socket.io')
-const {all} = require("express/lib/application");
 const server = http.createServer(backend)
 const io = new Server(server, {pingInterval: 1500, pingTimeout: 5000})
 
@@ -44,14 +43,38 @@ const skel = {
     newSpecial: "apple",
 }
 const perishable = ["apple", "banana", "carrots"]
-const fungible = perishable.concat([])
+const fungible = perishable.concat(["metal", "wood"])
 const allItems = fungible.concat(["diamond"])
 const bonus = {
     apple: [1, 1],
     banana: [0.5, 1.25],
     carrots: [2.6, 0.4],
 
+    metal: [0, 1],
+    wood: [0, 1],
+
     diamond: [25, 0.6],
+}
+const events = {
+    storm: {
+        storageBroke: {
+            metal: [2, 6],
+            wood: [4, 10]
+        },
+        text: "Ein Sturm hat über Nacht dein Lager zerstört!"
+    },
+    productiveProduction: {
+        text: "Die Lieferanten haben noch viel auf Lager!",
+        greatFactor: [0.75, 0.85]
+    },
+    poorProduction: {
+        text: "Die Lieferanten leiden unter Lieferschwierigkeiten!",
+        greatFactor: [1.15, 1.25]
+    },
+    noProduction: {
+        text: "Das Schiff auf dem die Waren geliefert werden sollten, steckt im Ärmelkanal!",
+        greatStop: true
+    }
 }
 const socketUser = {}
 const userSocket = {}
@@ -336,6 +359,41 @@ io.on('connection', (socket) => {
         sendUpdate()
     })
 
+    // try to repair storage
+    socket.on('repairStorage', () => {
+        if (socketUser[socket.id] === null) {
+            socket.emit('kick')
+            return
+        }
+
+        console.log("Test1")
+
+        const target = socketUser[socket.id]
+        if (
+            users[target].storageBroke === undefined ||
+            users[target].inventory.metal === undefined ||
+            users[target].inventory.wood === undefined ||
+            users[target].inventory.metal < users[target].storageBroke.metal ||
+            users[target].inventory.wood < users[target].storageBroke.wood
+        ) {
+            socket.emit('log', "Insufficient mats")
+            return
+        }
+        users[target].inventory.metal -= users[target].storageBroke.metal
+        if (users[target].inventory.metal === 0) {
+            delete users[target].inventory.metal
+        }
+        users[target].inventory.wood -= users[target].storageBroke.wood
+        if (users[target].inventory.wood === 0) {
+            delete users[target].inventory.wood
+        }
+
+        delete users[target].storageBroke
+        delete users[target].motd
+
+        sendUpdate()
+    })
+
     // claim spawned diamond
     socket.on('claimDiamond', () => {
         if (socketUser[socket.id] === null) {
@@ -551,7 +609,39 @@ async function update() {
         }
         statsArchive.users[startTime] = {}
 
+        // choose event
+        let event
+        const eventPercentage = 100-100*(0.95**Object.keys(events).length)
+        if (Math.random()*100 < eventPercentage) {
+            const chosenEventId = Math.round(Math.random()*(Object.keys(events).length-1))
+            const eventStr = Object.keys(events)[chosenEventId]
+            event = events[eventStr]
+        }
+
         for (const uid in users) {
+            // user stuff
+
+            delete users[uid].motd
+            delete users[uid].greatFactor
+            delete users[uid].greatStop
+
+            // apply event
+            if (event !== undefined) {
+                users[uid].motd = event.text
+                if (event.storageBroke !== undefined) {
+                    users[uid].storageBroke = {
+                        metal: Math.round(Math.random() * (event.storageBroke.metal[1] - event.storageBroke.metal[0]) + event.storageBroke.metal[0]),
+                        wood: Math.round(Math.random() * (event.storageBroke.wood[1] - event.storageBroke.wood[0]) + event.storageBroke.wood[0]),
+                    }
+                }
+                if (event.greatFactor !== undefined) {
+                    users[uid].greatFactor = Math.random() * (event.greatFactor[1] - event.greatFactor[0]) + event.greatFactor[0]
+                }
+                if (event.greatStop !== undefined) {
+                    users[uid].greatStop = true
+                }
+            }
+
             // bonuses for trading with multiple players
             if (pubStats.trades !== undefined && pubStats.trades[uid] !== undefined) {
                 const tradePartner = pubStats.trades[uid]
@@ -572,6 +662,9 @@ async function update() {
                 }
                 if (perishable.includes(iid)) {
                     let count = users[uid].inventory[iid]
+                    if (users[uid].storageBroke !== undefined) {
+                        count *= 0.5
+                    }
                     count = Math.round((Math.random() * (1/8) + 1/2) * count)
                     users[uid].inventory[iid] = count
                 }
@@ -585,8 +678,13 @@ async function update() {
             }
             // give new price
             let avg = calcAveragePrice(users[uid].special, false)
-            users[uid].todayPrice = Math.round((Math.random() * (1/11*avg) + (avg - (1/15*avg))) * 100) / 100
-            users[uid].greatBuy = false
+            let greatFactor = 1
+            if (users[uid].greatFactor !== undefined) {
+                greatFactor = users[uid].greatFactor
+            }
+            users[uid].todayPrice = Math.round((Math.random() * (1/11*avg) + (avg - (1/15*avg))*greatFactor) * 100) / 100
+
+            users[uid].greatBuy = users[uid].greatStop !== undefined;
 
             // archive user data
             statsArchive.users[startTime][uid] = users[uid]

@@ -5,11 +5,15 @@ const socket = io()
 let me = ""
 let users = {}
 let online = []
-const fungible = ["apple", "banana", "carrots"]
+const fungible = ["apple", "banana", "carrots", "metal", "wood"]
 const itemNames = {
     apple: "Apfelkiste",
     banana: "Bananen",
     carrots: "Karotten",
+
+    metal: "Metall",
+    wood: "Holz",
+
     diamond: "Diamant"
 }
 
@@ -100,13 +104,30 @@ socket.on('update', (backendData) => {
     document.getElementById('moneyVolume').innerText = "$" + Math.round(backendData.volumes.money*100)/100
     document.getElementById('itemVolume').innerText = "$" + Math.round(backendData.volumes.items*100)/100
 
-    if (users[me].greatBuy) {
+    if (users[me].greatStop) {
+        document.getElementById('greatSubmit').innerHTML = "<b>Heute keine Waren verfügbar!</b>"
+    } else if (users[me].greatBuy) {
         document.getElementById('greatSubmit').innerHTML = "<b>Bereits eingekauft!</b>"
     } else {
         let quantity = document.getElementById("greatQuantity").value
         quantity = Math.round(quantity)
         const pricePP = users[me].todayPrice
         document.getElementById('greatLivePrice').innerText = "$" + (Math.round(quantity*pricePP*100)/100)
+    }
+
+    if (users[me].motd !== undefined) {
+        document.getElementById('motd').innerHTML = users[me].motd
+    } else {
+        document.getElementById('motd').innerHTML = ""
+    }
+
+    if (users[me].storageBroke !== undefined) {
+        document.getElementById('storageBroken').classList.add('active')
+        document.getElementById('repairCost').innerText =
+            "Metall: " + users[me].storageBroke.metal +
+            ", Holz: " + users[me].storageBroke.wood
+    } else {
+        document.getElementById('storageBroken').classList.remove('active')
     }
 
     if (backendData.diamond === true) {
@@ -156,11 +177,12 @@ socket.on('update', (backendData) => {
             row.setAttribute('data-item', item)
             nameCol.innerText = itemNames[item]
             countCol.innerText = count.toString()
-            offerCol.innerHTML = "<i class='bx bxs-store' ></i>"
             if (users[me].offers[item] !== undefined) {
                 offerCol.style.color = "lime"
+                offerCol.innerHTML = "$" + users[me].offers[item]
             } else {
                 offerCol.style.color = "red"
+                offerCol.innerHTML = "<i class='bx bxs-store' ></i>"
             }
             offerCol.id = "offer" + me + item
             offerCol.classList.add("colBtn")
@@ -190,10 +212,13 @@ socket.on('update', (backendData) => {
             document.getElementById('itemsBody').appendChild(row)
         } else {
             document.getElementById('show'+item).getElementsByTagName('td')[1].innerText = count.toString()
+            const offerCol = document.getElementById('show'+item).getElementsByTagName('td')[2]
             if (users[me].offers[item] !== undefined) {
-                document.getElementById('show'+item).getElementsByTagName('td')[2].style.color = "lime"
+                offerCol.style.color = "lime"
+                offerCol.innerHTML = "$" + users[me].offers[item]
             } else {
-                document.getElementById('show'+item).getElementsByTagName('td')[2].style.color = "red"
+                offerCol.style.color = "red"
+                offerCol.innerHTML = "<i class='bx bxs-store' ></i>"
             }
         }
     }
@@ -332,6 +357,20 @@ function createUser() {
 }
 function setAttribute(key, value, user = me) {
     socket.emit('setAttribute', {key: key, value: value, user: user})
+}
+
+function repairStorage() {
+    if (
+        users[me].storageBroke === undefined ||
+        users[me].inventory.metal === undefined ||
+        users[me].inventory.wood === undefined ||
+        users[me].inventory.metal < users[me].storageBroke.metal ||
+        users[me].inventory.wood < users[me].storageBroke.wood
+    ) {
+        alert("Nicht genug Materialien!")
+        return
+    }
+    socket.emit('repairStorage')
 }
 
 // ON LOAD

@@ -190,6 +190,9 @@ h1 {
 .doubleTable tr:nth-child(even) td {
     border: solid #454545;
 }
+.doubleTable tr td:last-child {
+    width: 150px;
+}
 
 .colBtn {
     cursor: pointer;
@@ -220,6 +223,24 @@ h1 {
 }
 #diamondSpawner.active {
     display: block;
+}
+
+#storageBroken {
+    display: none;
+    background-color: #ff9999;
+    color: #540000;
+    width: 50%;
+    padding: 20px;
+    border: solid #ff9999;
+    border-radius: 19px;
+    margin: 20px auto 0;
+}
+#storageBroken.active {
+    display: block;
+}
+
+#motd {
+    color: #ce0000;
 }
 
 #statsDiv {
