@@ -47,11 +47,11 @@ const perishable = ["apple", "banana", "carrots"]
 const fungible = perishable.concat([])
 const allItems = fungible.concat(["diamond"])
 const bonus = {
-    apple: 1,
-    banana: 1.25,
-    carrots: 1.25,
+    apple: [1, 1],
+    banana: [0.5, 1.25],
+    carrots: [2.6, 0.4],
 
-    diamond: 25,
+    diamond: [25, 0.6],
 }
 const socketUser = {}
 const userSocket = {}
@@ -568,7 +568,7 @@ async function update() {
             // waste of intolerable goods and bonuses for non-special items
             for (const iid in users[uid].inventory) {
                 if (iid !== users[uid].special) {
-                    users[uid].balance += bonus[iid]*users[uid].inventory[iid]*balanceMultiplier
+                    users[uid].balance += (bonus[iid][0]*users[uid].inventory[iid])**bonus[iid][1]*balanceMultiplier
                 }
                 if (perishable.includes(iid)) {
                     let count = users[uid].inventory[iid]
