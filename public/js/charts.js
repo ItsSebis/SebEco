@@ -1,5 +1,20 @@
 let currentItem = "apple"
 
+const itemNames = {
+    apple: "Apfelkiste",
+    banana: "Bananen",
+    carrots: "Karotten",
+    dattel: "Dattel",
+    strawberry: "Erdbeere",
+    grapefruit: "Grapefruit",
+    orange: "Orange",
+    mango: "Mango",
+
+    metal: "Metall",
+    wood: "Holz",
+
+    diamond: "Diamant"
+}
 
 socket.on('updateStats', (backendStats) => {
     // main loop
@@ -15,10 +30,10 @@ socket.on('updateStats', (backendStats) => {
             const itemOption = document.createElement('option')
             itemOption.id = 'option'+iid
             itemOption.value = iid
-            itemOption.innerText = iid + avgPriceStr
+            itemOption.innerText = itemNames[iid] + avgPriceStr
             document.getElementById('selectItem').appendChild(itemOption)
         } else {
-            document.getElementById('option'+iid).innerText = iid + avgPriceStr
+            document.getElementById('option'+iid).innerText = itemNames[iid] + avgPriceStr
         }
     }
 
@@ -30,7 +45,6 @@ socket.on('updateStats', (backendStats) => {
             const thisData = backendStats.arch.items[dateNum]
             const dateString = date.getDate().toString() + "." + (date.getMonth()+1).toString() + "." + date.getFullYear().toString()
 
-            console.log(dateString)
             if (rawStats[dateString] === undefined) {
                 rawStats[dateString] = {items: thisData}
             } else {
@@ -55,7 +69,6 @@ socket.on('updateStats', (backendStats) => {
                     }
                 }
                 rawStats[dateString].items = merged
-                console.log(merged)
             }
 
             // let tradeCount = 0
@@ -75,8 +88,6 @@ socket.on('updateStats', (backendStats) => {
 
     console.log(rawStats)
 
-    console.log("Test1")
-
     const completeStats = {}
 
     let average = []
@@ -88,7 +99,6 @@ socket.on('updateStats', (backendStats) => {
         completeStats[dateString] = {}
 
         for (const iid in rawStats[dateString].items) {
-            console.log(iid)
             let high = 0
             let low = Infinity
             let sales = 0
@@ -116,10 +126,6 @@ socket.on('updateStats', (backendStats) => {
         }
     }
 
-    console.log("Test2")
-
-    console.log(dates)
-
     console.log(completeStats)
 
     const data = {
@@ -146,7 +152,9 @@ socket.on('updateStats', (backendStats) => {
     const config = {
         type: 'line',
         data: data,
-        options: {}
+        options: {
+            animation: false
+        }
     };
 
     update(config)

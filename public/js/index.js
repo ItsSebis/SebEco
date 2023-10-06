@@ -5,16 +5,75 @@ const socket = io()
 let me = ""
 let users = {}
 let online = []
-const fungible = ["apple", "banana", "carrots", "metal", "wood"]
+const fungible = ["apple", "banana", "carrots", "dattel", "strawberry", "grapefruit", "orange", "mango", "metal", "wood"]
 const itemNames = {
     apple: "Apfelkiste",
     banana: "Bananen",
     carrots: "Karotten",
+    dattel: "Dattel",
+    strawberry: "Erdbeere",
+    grapefruit: "Grapefruit",
+    orange: "Orange",
+    mango: "Mango",
 
     metal: "Metall",
     wood: "Holz",
 
     diamond: "Diamant"
+}
+const invLevels = {
+    1: {
+        stacks: 2,
+        stackSize: 16,
+    },
+    2: {
+        stacks: 3,
+        stackSize: 16,
+        metal: 8,
+        wood: 10,
+    },
+    3: {
+        stacks: 3,
+        stackSize: 20,
+        metal: 10,
+        wood: 12,
+    },
+    4: {
+        stacks: 4,
+        stackSize: 20,
+        metal: 12,
+        wood: 14,
+    },
+    5: {
+        stacks: 4,
+        stackSize: 24,
+        metal: 14,
+        wood: 16,
+    },
+    6: {
+        stacks: 5,
+        stackSize: 24,
+        metal: 16,
+        wood: 18,
+    },
+    7: {
+        stacks: 5,
+        stackSize: 28,
+        metal: 18,
+        wood: 20,
+    },
+    8: {
+        stacks: 6,
+        stackSize: 28,
+        metal: 20,
+        wood: 22,
+    },
+    9: {
+        stacks: 6,
+        stackSize: 32,
+        metal: 22,
+        wood: 24,
+    },
 }
 
 // login btn function
@@ -121,6 +180,23 @@ socket.on('update', (backendData) => {
         document.getElementById('motd').innerHTML = ""
     }
 
+    if (users[me].invLvl !== undefined) {
+        document.getElementById('invLevelScreen').innerHTML = "Level: " + users[me].invLvl + "<br>" +
+            "Plätze: " + invLevels[users[me].invLvl].stacks + "<br>Platzgröße: " + invLevels[users[me].invLvl].stackSize
+        if (document.getElementById('upgradeInv') !== null) {
+            document.getElementById('upgradeInv').innerText = "Upgrade " +
+                "(" + invLevels[users[me].invLvl].metal + "M & " + invLevels[users[me].invLvl].wood + "W)"
+        }
+        if (users[me].invLvl+1 > Object.keys(invLevels)) {
+            document.getElementById('upgradeInv').remove()
+        }
+    } else {
+        document.getElementById('invLevelScreen').innerHTML = "Level: 1<br>" +
+            "Plätze: " + invLevels[1].stacks + "<br>Platzgröße: " + invLevels[1].stackSize
+        document.getElementById('upgradeInv').innerText = "Upgrade " +
+            "(" + invLevels[2].metal + "M & " + invLevels[2].wood + "W)"
+    }
+
     if (users[me].storageBroke !== undefined) {
         document.getElementById('storageBroken').classList.add('active')
         document.getElementById('repairCost').innerText =
@@ -167,6 +243,7 @@ socket.on('update', (backendData) => {
 
     for (const item in users[me].inventory) {
         const count = users[me].inventory[item]
+        console.log(count)
         if (document.getElementById('show'+item) === null) {
             const row = document.createElement("tr")
             const nameCol = document.createElement("td")
@@ -371,6 +448,24 @@ function repairStorage() {
         return
     }
     socket.emit('repairStorage')
+}
+
+function upgradeInv() {
+    let invLvl = 1
+    if (users[me].invLvl !== undefined) {
+        invLvl = users[me].invLvl
+    }
+    if (
+        users[me].inventory.metal === undefined ||
+        users[me].inventory.wood === undefined ||
+        users[me].inventory.metal < invLevels[invLvl].metal ||
+        users[me].inventory.wood < invLevels[invLvl].wood
+    ) {
+        alert("Nicht genug Materialien!")
+        return
+    }
+    socket.emit('upgradeInv')
+    console.log('upgrade req sent')
 }
 
 // ON LOAD

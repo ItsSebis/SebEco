@@ -37,18 +37,24 @@ backend.get('/getcookie', (req, res) => {
 let passwords = {sebi: "$2y$10$Yz7An.DFEOoBvFzcfSTa/uYR/wecld17rDNUTyTz5Ugk18hkTUkgC"}
 const skel = {
     balance: 1000,
+    invLvl: 1,
     inventory: {},
     offers: {},
     special: "apple",
     newSpecial: "apple",
 }
-const perishable = ["apple", "banana", "carrots"]
+const perishable = ["apple", "banana", "carrots", "dattel", "strawberry", "grapefruit", "orange", "mango"]
 const fungible = perishable.concat(["metal", "wood"])
 const allItems = fungible.concat(["diamond"])
 const bonus = {
     apple: [1, 1],
     banana: [0.5, 1.25],
     carrots: [2.6, 0.4],
+    dattel: [0.9, 1.1],
+    strawberry: [3, 0.2],
+    grapefruit: [0.8, 1.2],
+    orange: [0.85, 1.15],
+    mango: [1.2, 0.8],
 
     metal: [0, 1],
     wood: [0, 1],
@@ -75,6 +81,60 @@ const events = {
         text: "Das Schiff auf dem die Waren geliefert werden sollten, steckt im Ärmelkanal!",
         greatStop: true
     }
+}
+const invLevels = {
+    1: {
+        stacks: 2,
+        stackSize: 16,
+    },
+    2: {
+        stacks: 3,
+        stackSize: 16,
+        metal: 8,
+        wood: 10,
+    },
+    3: {
+        stacks: 3,
+        stackSize: 20,
+        metal: 10,
+        wood: 12,
+    },
+    4: {
+        stacks: 4,
+        stackSize: 20,
+        metal: 12,
+        wood: 14,
+    },
+    5: {
+        stacks: 4,
+        stackSize: 24,
+        metal: 14,
+        wood: 16,
+    },
+    6: {
+        stacks: 5,
+        stackSize: 24,
+        metal: 16,
+        wood: 18,
+    },
+    7: {
+        stacks: 5,
+        stackSize: 28,
+        metal: 18,
+        wood: 20,
+    },
+    8: {
+        stacks: 6,
+        stackSize: 28,
+        metal: 20,
+        wood: 22,
+    },
+    9: {
+        stacks: 6,
+        stackSize: 32,
+        metal: 22,
+        wood: 24,
+    },
 }
 const socketUser = {}
 const userSocket = {}
@@ -263,6 +323,10 @@ io.on('connection', (socket) => {
             sendUpdate()
             return
         }
+        if (!invSpaceTest(buyer, product, 1)) {
+            socket.emit('cannotBuy', "Kein Platz im Lager!")
+            return
+        }
 
         if (users[buyer].inventory[product] === undefined) {
             users[buyer].inventory[product] = 1
@@ -332,8 +396,12 @@ io.on('connection', (socket) => {
             return;
         }
         if (price > users[buyer].balance) {
-            socket.emit('greatFail', "You do not have enough money to buy this much!")
+            socket.emit('greatFail', "Du hast nicht genug Geld!")
             return
+        }
+        if (!invSpaceTest(buyer, product, quantity)) {
+            socket.emit('greatFail', "Dein Inventar kann nicht so viel aufnehmen!")
+            return;
         }
 
         if (users[buyer].inventory[product] === undefined) {
@@ -366,8 +434,6 @@ io.on('connection', (socket) => {
             return
         }
 
-        console.log("Test1")
-
         const target = socketUser[socket.id]
         if (
             users[target].storageBroke === undefined ||
@@ -394,10 +460,52 @@ io.on('connection', (socket) => {
         sendUpdate()
     })
 
+    // try to upgrade inventory
+    socket.on('upgradeInv', () => {
+        if (socketUser[socket.id] === null) {
+            socket.emit('kick')
+            return
+        }
+
+        const target = socketUser[socket.id]
+        if (users[target].invLvl === undefined) {
+            users[target].invLvl = 1
+        }
+        if (users[target].invLvl+1 > Object.keys(invLevels)) {
+            socket.emit('log', "Maxed")
+            return
+        }
+        if (
+            users[target].inventory.metal === undefined ||
+            users[target].inventory.wood === undefined ||
+            users[target].inventory.metal < invLevels[users[target].invLvl].metal ||
+            users[target].inventory.wood < invLevels[users[target].invLvl].wood
+        ) {
+            socket.emit('log', "Insufficient mats")
+            return
+        }
+        users[target].inventory.metal -= invLevels[users[target].invLvl].metal
+        if (users[target].inventory.metal === 0) {
+            delete users[target].inventory.metal
+        }
+        users[target].inventory.wood -= invLevels[users[target].invLvl].wood
+        if (users[target].inventory.wood === 0) {
+            delete users[target].inventory.wood
+        }
+
+        users[target].invLvl += 1
+
+        sendUpdate()
+    })
+
     // claim spawned diamond
     socket.on('claimDiamond', () => {
         if (socketUser[socket.id] === null) {
             socket.emit('kick')
+            return
+        }
+        if (!invSpaceTest(socketUser[socket.id], "diamond", 1)) {
+            socket.emit('greatFail', "Dein Lager ist voll!")
             return
         }
         if (statsArchive.diamond !== undefined && statsArchive.diamond === true) {
@@ -445,6 +553,11 @@ io.on('connection', (socket) => {
     })
 })
 
+// listen
+server.listen(port, "0.0.0.0", () => {
+    console.log(`Listening for connections on ${port}`)
+})
+
 // functions
 // set password for user
 function setPassword(user, password) {
@@ -459,7 +572,6 @@ function setPassword(user, password) {
 
 // write data to file
 function saveData() {
-    sendUpdate()
     const data = {
         users: users,
         stats: pubStats,
@@ -474,11 +586,6 @@ function saveData() {
         console.log("Saved data!")
     })
 }
-
-// listen
-server.listen(port, "0.0.0.0", () => {
-    console.log(`Listening for connections on ${port}`)
-})
 
 function getVolumes() {
     let totalMoneyVolume = 0
@@ -564,12 +671,31 @@ function calcHistoryAveragePrice(product) {
     }
 }
 
+// does another fit?
+function invSpaceTest(uid, iid, count) {
+    const inv = users[uid].inventory
+    let invLvl = 1
+    if (users[uid].invLvl !== undefined) {
+        invLvl = users[uid].invLvl
+    } else {
+        users[uid].invLvl = 1
+    }
+    const levelStats = invLevels[invLvl]
+
+    if (inv[iid] !== undefined) {
+        return inv[iid]+count <= levelStats.stackSize
+    } else {
+        return Object.keys(inv).length < levelStats.stacks && count <= levelStats.stackSize
+    }
+}
+
 function sendStats(target='charts') {
     io.to(target).emit('updateStats', {cur: pubStats, arch: statsArchive, allItems: allItems})
 }
 
 function sendUpdate() {
     io.to('authenticated').emit('update', {users: users, diamond: statsArchive.diamond, volumes: getVolumes()})
+    sendStats()
 }
 
 async function update() {
@@ -708,9 +834,7 @@ async function update() {
         statsArchive.diamond = true
     }
 
-    // update stats
-    sendStats()
-    // save data
+    // save data & update charts
     saveData()
 
     const nextTime = now
