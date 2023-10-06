@@ -478,17 +478,17 @@ io.on('connection', (socket) => {
         if (
             users[target].inventory.metal === undefined ||
             users[target].inventory.wood === undefined ||
-            users[target].inventory.metal < invLevels[users[target].invLvl].metal ||
-            users[target].inventory.wood < invLevels[users[target].invLvl].wood
+            users[target].inventory.metal < invLevels[users[target].invLvl+1].metal ||
+            users[target].inventory.wood < invLevels[users[target].invLvl+1].wood
         ) {
             socket.emit('log', "Insufficient mats")
             return
         }
-        users[target].inventory.metal -= invLevels[users[target].invLvl].metal
+        users[target].inventory.metal -= invLevels[users[target].invLvl+1].metal
         if (users[target].inventory.metal === 0) {
             delete users[target].inventory.metal
         }
-        users[target].inventory.wood -= invLevels[users[target].invLvl].wood
+        users[target].inventory.wood -= invLevels[users[target].invLvl+1].wood
         if (users[target].inventory.wood === 0) {
             delete users[target].inventory.wood
         }
