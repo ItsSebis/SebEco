@@ -185,7 +185,7 @@ socket.on('update', (backendData) => {
             "Plätze: " + invLevels[users[me].invLvl].stacks + "<br>Platzgröße: " + invLevels[users[me].invLvl].stackSize
         if (document.getElementById('upgradeInv') !== null) {
             document.getElementById('upgradeInv').innerText = "Upgrade " +
-                "(" + invLevels[users[me].invLvl].metal + "M & " + invLevels[users[me].invLvl].wood + "W)"
+                "(" + invLevels[users[me].invLvl+1].metal + "M & " + invLevels[users[me].invLvl+1].wood + "W)"
         }
         if (users[me].invLvl+1 > Object.keys(invLevels)) {
             document.getElementById('upgradeInv').remove()
