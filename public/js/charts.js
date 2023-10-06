@@ -69,6 +69,10 @@ socket.on('updateStats', (backendStats) => {
         }
     }
 
+    if (backendStats.cur.items !== undefined) {
+        rawStats["Heute"] = {items: backendStats.cur.items}
+    }
+
     console.log(rawStats)
 
     console.log("Test1")
