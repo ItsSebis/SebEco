@@ -47,14 +47,14 @@ const perishable = ["apple", "banana", "carrots", "dattel", "strawberry", "grape
 const fungible = perishable.concat(["metal", "wood"])
 const allItems = fungible.concat(["diamond"])
 const bonus = {
-    apple: [1, 1],
-    banana: [0.5, 1.25],
-    carrots: [2.6, 0.4],
-    dattel: [0.9, 1.1],
-    strawberry: [3, 0.2],
-    grapefruit: [0.8, 1.2],
-    orange: [0.85, 1.15],
-    mango: [1.2, 0.8],
+    apple: [5, 1],
+    banana: [4.75, 1.25],
+    carrots: [6.6, 0.4],
+    dattel: [4.5, 1.15],
+    strawberry: [8, 0.2],
+    grapefruit: [4.8, 1.2],
+    orange: [4.85, 1.15],
+    mango: [5.2, 0.8],
 
     metal: [0, 1],
     wood: [0, 1],
@@ -136,6 +136,7 @@ const invLevels = {
         wood: 24,
     },
 }
+const tax = 19 // percentage
 const socketUser = {}
 const userSocket = {}
 
@@ -340,7 +341,7 @@ io.on('connection', (socket) => {
             users[seller].inventory[product] = users[seller].inventory[product]-1
         }
 
-        users[seller].balance += price
+        users[seller].balance += price-(price*(tax/100))
         users[buyer].balance -= price
 
         if (pubStats.items === undefined) {
@@ -360,7 +361,15 @@ io.on('connection', (socket) => {
         if (users[seller].stats.profit === undefined) {
             users[seller].stats.profit = 0
         }
-        users[seller].stats.profit += price
+        users[seller].stats.profit += price-(price*(tax/100))
+
+        if (users[buyer].stats === undefined) {
+            users[buyer].stats = {}
+        }
+        if (users[buyer].stats.profit === undefined) {
+            users[buyer].stats.profit = 0
+        }
+        users[buyer].stats.profit -= price
 
         if (pubStats.trades === undefined) {
             pubStats.trades = {}
@@ -410,6 +419,15 @@ io.on('connection', (socket) => {
         users[buyer].inventory[product] += quantity
         users[buyer].balance -= price
         users[buyer].greatBuy = true
+
+        if (users[buyer].stats === undefined) {
+            users[buyer].stats = {}
+        }
+        if (users[buyer].stats.profit === undefined) {
+            users[buyer].stats.profit = 0
+        }
+        users[buyer].stats.profit -= price
+
         sendUpdate()
     })
 
@@ -791,7 +809,7 @@ async function update() {
                     if (users[uid].storageBroke !== undefined) {
                         count *= 0.5
                     }
-                    count = Math.round((Math.random() * (1/8) + 1/2) * count)
+                    count = Math.round((Math.random() * (1/8) + 1/3) * count)
                     users[uid].inventory[iid] = count
                 }
                 if (users[uid].inventory[iid] <= 0) {
